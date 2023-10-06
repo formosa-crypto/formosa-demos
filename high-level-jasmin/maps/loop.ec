@@ -79,7 +79,7 @@ module Map(B:Body) = {
   proc map (a : elem ArrayN.t) = { 
     var i : W64.t;
     var e : elem;
-    var j : int;
+    var j, aux : int;
 
     i <- W64.of_int 0; 
     while (i \ult W64.of_int (N %/ iter * iter)) {
@@ -92,8 +92,9 @@ module Map(B:Body) = {
       }
       i <- i + W64.of_int iter;
     }
+    aux <- N %% iter;
     j <- 0;
-    while (j < N %% iter) {
+    while (j < aux) {
       e <- a.[W64.to_uint i + j];
       e <@ B.body(e);
       a.[W64.to_uint i + j] <- e;
@@ -105,7 +106,7 @@ module Map(B:Body) = {
   proc map_incr (a : elem ArrayN.t) = { 
     var i : W64.t;
     var e : elem;
-    var j : int;
+    var j, aux: int;
 
     i <- W64.of_int 0; 
     while (i \ult W64.of_int (N %/ iter * iter)) {
@@ -118,8 +119,9 @@ module Map(B:Body) = {
         j <- j + 1;
       }
     }
+    aux <- N %% iter;
     j <- 0;
-    while (j < N %% iter) {
+    while (j < aux) {
       e <- a.[W64.to_uint i];
       e <@ B.body(e);
       a.[W64.to_uint i] <- e;
@@ -139,7 +141,8 @@ proof.
   move=> body_spec a_.
   have /= hN := N_spec. have hiter := iter_spec.
   proc.
-  while (to_uint i = N %/iter * iter /\ 0 <= j <= N %% iter /\
+  while (aux = N %% iter /\
+         to_uint i = N %/iter * iter /\ 0 <= j <= N %% iter /\ 
          forall k, a.[k] = if 0 <= k < to_uint i + j then f a_.[k] else a_.[k]).
   + wp; ecall (body_spec a.[to_uint i + j]); wp; skip => />.
     move=> &m hi h0j hjN hk hlt; smt(divzE ArrayN.get_setE).
@@ -166,7 +169,8 @@ equiv map_map_incr (B<:Body) :
 proof.
   have /= hN := N_spec. have hiter := iter_spec.
   proc.
-  while (={j, a, glob B} /\ to_uint i{1} + j{1} = to_uint i{2} /\
+  while (={j, a, glob B, aux} /\ to_uint i{1} + j{1} = to_uint i{2} /\
+          aux{1} = N %% iter /\
           (to_uint i = N %/iter * iter /\ 0 <= j <= N %% iter){1}).
   + wp; call (_:true); wp; skip => />.
     move=> &1 &2 hij hi h0j hjN hlt. 
@@ -205,7 +209,29 @@ proof.
   move=> body_spec a_.
   conseq (map_incr_map B) (map_spec_i B f body_spec a_) => // /#.
 qed.
-  
+ 
+lemma map_spec (B<:Body) (f: elem -> elem) : 
+  (forall e_, hoare [B.body: e = e_ ==> res = f e_]) =>
+  forall (a_: elem ArrayN.t),
+  hoare [Map(B).map : a = a_ ==> res = ArrayN.map f a_].
+proof.
+  move=> body_spec a_.
+  conseq (map_spec_i B f body_spec a_).
+  move=> /> r heqi; apply /ArrayN.tP => i hi.
+  rewrite heqi // ArrayN.mapiE //.
+qed.
+
+lemma map_incr_spec (B<:Body) (f: elem -> elem) : 
+  (forall e_, hoare [B.body: e = e_ ==> res = f e_]) =>
+  forall (a_: elem ArrayN.t),
+  hoare [Map(B).map_incr : a = a_ ==> res = ArrayN.map f a_].
+proof.
+  move=> body_spec a_.
+  conseq (map_incr_spec_i B f body_spec a_).
+  move=> /> r heqi; apply /ArrayN.tP => i hi.
+  rewrite heqi // ArrayN.mapiE //.
+qed.
+ 
 end MAP_iter.
 
 end LOOP.
