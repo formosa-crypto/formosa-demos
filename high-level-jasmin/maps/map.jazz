@@ -1,0 +1,117 @@
+
+inline fn plus_one(reg u64 a) -> reg u64
+{
+  a += 1;
+  return a;
+}
+
+inline fn __map_simple<N>[F;A](reg ptr A[N] a) -> reg ptr A[N]
+{
+  reg u64 i;
+  inline int j;
+  reg A elem;
+
+  i = 0;
+  while(i < N)
+  {
+    elem = a[(int) i];
+    elem = F(elem);
+    a[(int) i] = elem;
+    i += 1;
+  }
+
+  return a;
+}//<>
+
+inline fn __map_optimized<N, ITER>[F;A](reg ptr A[N] a) -> reg ptr A[N]
+{
+  reg u64 i;
+  inline int j;
+  reg A elem;
+
+  i = 0;
+  while(i < (N / ITER) * ITER)
+  {
+    for j=0 to ITER
+    {
+      elem = a[(int) i];
+      elem = F(elem);
+      a[(int) i] = elem;
+      i += 1;
+    }
+  }
+
+  for j=0 to (N % ITER)
+  {
+    elem = a[(int) i];
+    elem = F(elem);
+    a[(int) i] = elem;
+    i += 1;
+  }
+
+  return a;
+}//<>
+
+// /////////////////////////////////////////////////////////////////////////////
+
+param int L = 16;
+
+inline fn __mem_to_array_u64(reg u64 p) -> stack u64[L]
+{
+  stack u64[L] a;
+  reg ptr u64[L] pa;
+  reg u64 ai i;
+
+  pa = a;
+  i = 0;
+  while (i < L) {
+    ai = (u64)[p + 8 * i];
+    pa[(int) i] = ai;
+    i += 1;
+  }
+  a = pa;
+  return a;
+}
+
+inline fn __array_to_mem_u64(stack u64[L] a, reg u64 p)
+{
+  reg u64 ai i;
+  reg ptr u64[L] pa;
+
+  pa = a;
+  i = 0;
+  while (i < L) {
+    ai = pa[(int) i];
+    (u64)[p + 8 * i] = ai;
+    i += 1;
+  }
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+
+export fn test_map_simple_u64(reg u64 p)
+{
+  stack u64[L] a;
+  reg ptr u64[L] ap;
+
+  a = __mem_to_array_u64(p);
+
+  ap = a;
+  a = __map_simple<L>[plus_one;u64](ap);
+
+  __array_to_mem_u64(a, p);
+}
+
+export fn test_map_optimized_u64(reg u64 p)
+{
+  stack u64[L] a;
+  reg ptr u64[L] ap;
+
+  a = __mem_to_array_u64(p);
+
+  ap = a;
+  a = __map_optimized<L,4>[plus_one;u64](ap);
+
+  __array_to_mem_u64(a, p);
+}
+
