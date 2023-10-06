@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdint.h>
+#include <inttypes.h>
 
 #define L 16
 
@@ -19,7 +20,7 @@ void print(char *s, uint64_t *a)
 {
   printf("%s", s);
   for(size_t i=0; i<L-1; i++)
-  { printf("%ld, ", a[i]); }
+  { printf("%" PRId64 ", ", a[i]); }
   printf("%ld\n", a[L-1]);
 }
 
