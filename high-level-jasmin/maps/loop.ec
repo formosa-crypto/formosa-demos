@@ -2,6 +2,8 @@ require import AllCore IntDiv.
 
 from Jasmin require import JArray JWord.
 
+abstract theory LOOP.
+
 type elem.
 op N : int.
 
@@ -206,3 +208,4 @@ qed.
   
 end MAP_iter.
 
+end LOOP.
